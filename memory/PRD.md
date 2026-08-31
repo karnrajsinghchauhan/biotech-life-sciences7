@@ -18,6 +18,8 @@ Build a complete, production-quality e-commerce website for BIOTECH LIFESCIENCES
 - 2026-02-28 · Trust-forward copy pass on Home + PDP + Announcement + Ticker + Features
 - 2026-02-28 · Rich editorial copy for About / Quality / Shipping / Contact / Blog (replaced [INSERT VERIFIED] placeholders)
 - 2026-02-28 · Request COA feature with mailto: + wa.me deep links on product detail
+- 2026-02-28 · Three.js DNA breathing background (hero + ambient), Peptide Finder Quiz, Stack Builder, Verified Purchase Reviews (gated by mock checkout), Testimonials, Top Rated by Labs, Live Shipping Countdown, "Why Choose Us" section
+- 2026-02-31 · CRITICAL fixes for deploy readiness: cart drawer now closes on /checkout navigation and on route change (was blocking all form clicks); Buy Now flow closes drawer before nav; mobile horizontal overflow fixed (390px viewport now 390 scrollWidth); mobile hero-popular now stacks below hero copy (was overlapping and squeezing h1 to 95px wide). Testing agent iteration_10: 100% pass, no regressions.
 
 ## Backlog / next tasks (P0 → P2)
 - P0 · Integrate user's GitHub code (URL not yet provided)

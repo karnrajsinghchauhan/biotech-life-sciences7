@@ -1,0 +1,32 @@
+{
+  "summary": "Frontend-only regression + mobile polish + WhyChooseUs validation. Desktop and core flows (product click, add-to-cart from card/PDP, bpc-157 PDP add) all pass. WhyChooseUs section renders with 6 cards. Mobile viewport (390x844) has critical failures: horizontal overflow (scrollWidth=425 > 400 target), and hero h1 renders in a 95px-wide column (height 289px) — text wrapping letter-by-letter because the hero-popular card is still overlaying/occupying the right side of hero copy instead of stacking below on mobile.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Hero (mobile)", "issue": "Hero h1 bounding box is 95px x 289px on 390px viewport — 'BIOTECH LIFE SCIENCES' wraps one glyph per line. Root cause: hero-popular card is still positioned to the right of the hero copy on mobile (appears absolute or floated), squeezing h1 into a narrow column. Requirement was hero-popular below hero copy (position:relative).", "selector": ".hero h1 / .hero-popular", "priority": "HIGH"},
+      {"component": "Layout (mobile)", "issue": "Horizontal overflow: document.documentElement.scrollWidth = 425px on a 390px viewport (fails <=400 requirement). Announcement/trust strip 'FREE BAC WATER... 99%+ VERIFIED PURITY HPLC + MASS SPEC TESTED COA PER BATCH' appears to force overflow.", "selector": "body / .announcement / .trust-bar", "priority": "HIGH"},
+      {"component": "Trust bar (mobile)", "issue": "Trust bar not rendering in 2-column grid on mobile — appears as single overflowing row.", "selector": ".trust-bar", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Mobile Home", "issues": ["Hero copy compressed to tiny column due to hero-popular overlap", "Horizontal scroll present", "Announcement strip too wide"]}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Fix .hero-popular on mobile (@media max-width:768px) — force position:relative, full-width, margin-top; place BELOW .hero h1/copy in flow so h1 gets full viewport width.",
+    "Fix horizontal overflow: add overflow-x:hidden on body/main OR make announcement strip wrap / marquee within container; likely .announcement or .trust-bar has fixed min-width or nowrap causing 425px scrollWidth on 390px viewport.",
+    "Ensure .trust-bar collapses to 2-column grid on mobile as specified."
+  ],
+  "critical_code_review_comments": [
+    "Mobile CSS pass didn't actually reposition .hero-popular below hero content — verify @media (max-width:768px) rule for .hero-popular sets position:relative, top:auto, right:auto, width:100%.",
+    "No overflow-x guard on body/html; consider adding 'html,body{overflow-x:hidden}' as safety net until the offending wide element is identified."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A", "frontend": "70%"},
+  "seed_data_creation": "None",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Desktop is fine and all product/cart flows work end-to-end. Focus retest on mobile 390x844: (1) document.documentElement.scrollWidth must be <=400, (2) hero h1 must render at reasonable width (>=300px) not letter-per-line, (3) .hero-popular should stack below hero copy. WhyChooseUs testids why-choose-us + why-card-0..5 all present. Cart persists across navigation (verified 3 successive adds incremented count 1->2->3).",
+  "rca of the issue": "Mobile @media rule for .hero-popular likely still uses position:absolute inherited from desktop rule, or the media query specificity is too low to override. Additionally some element (announcement or trust-bar) has intrinsic width >400px forcing horizontal scroll — inspect via document.querySelectorAll('*').forEach(e=>{if(e.scrollWidth>400)console.log(e)})."
+}
