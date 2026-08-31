@@ -1,0 +1,28 @@
+{
+  "summary": "Frontend-only regression pass for BIOTECH LIFESCIENCES SPA after ORB image fix + defensive dapp meta tags. Grepped codebase for wallet/metamask/web3/ethereum/walletconnect/wagmi/viem — 0 matches confirmed (site has NO wallet code; any MetaMask popup a user sees is their own browser extension auto-injecting, not caused by our code). Verified index.html has both defensive meta tags. Ran full home-page load through a Playwright script capturing console messages and failed requests. Age gate accepted, page scrolled to trigger lazy image loads. Researcher image now loads successfully (naturalWidth=1200). Two of three testimonial avatars load (naturalWidth=200); testimonial-0 avatar (photo-1594824388893-1c5e5c3f0ec5) is STILL blocked by Chrome ORB (net::ERR_BLOCKED_BY_ORB) — this is a partial regression: the URL was cleaned of ?auto=format & q=70 but that particular Unsplash asset ID is still served with headers Chrome ORB rejects. All other flows regression-clean: hero DNA WebGL renders, FIND MY PEPTIDE opens finder-modal, ship-timer visible, three nav CTAs visible, top-rated section has 4 ranked cards (top-rated-0..3), 0 console errors captured during full home load.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "Testimonials", "issue": "testimonial-0 avatar URL (Unsplash photo-1594824388893-1c5e5c3f0ec5) is blocked by Chrome ORB (net::ERR_BLOCKED_BY_ORB) — the image never renders (naturalWidth=0). testimonial-1 (photo-1560250097-0b93528c311a) and testimonial-2 (photo-1607746882042-944635dfe10e) both load correctly (naturalWidth=200). Cleaning ?auto=format&q=70 helped for 2/3 images but this specific asset is still served with a MIME/nosniff combo Chrome ORB rejects. Fix: swap testimonial[0].avatar in /app/frontend/src/App.js:131 to a different Unsplash photo ID (e.g. one from the same photographer set that renders successfully, or use the same known-good pattern as the researcher photo photo-1532187863486-abf9dbad1b69).", "selector": "[data-testid=\"testimonial-0\"] img", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Swap testimonial[0].avatar URL in /app/frontend/src/App.js line 131 — the current photo-1594824388893-1c5e5c3f0ec5 is ORB-blocked. Pick a different Unsplash portrait ID (test naturalWidth>0 after the swap).",
+    "No wallet/web3 code exists in the repo — no MetaMask-related fixes required. Any MetaMask popup a QA engineer sees is caused by the MetaMask browser extension itself auto-injecting on every visited site and is out of the application's control. Defensive meta tags ethereum-dapp-url-bar-status=false and dapp-detection=disabled are already present in public/index.html."
+  ],
+  "critical_code_review_comments": [
+    "/app/frontend/src/App.js is packed as one-liner functions (line 128 is ~4KB, line 129 similarly dense). Very hard to review/maintain — main agent should consider splitting components into separate files and adding line breaks.",
+    "Testimonial avatars have alt=\"\" which is fine as decorative, but no onError fallback — when the image fails (as testimonial-0 does today) the layout shows a broken/empty avatar. Add an onError handler that swaps to an initial-based placeholder to prevent visible breakage from third-party image failures.",
+    "External Unsplash images are a fragile dependency (Chrome ORB will keep flagging assets whose response headers change). Consider self-hosting the small set of hero/researcher/testimonial images under /app/frontend/public/img to eliminate ORB risk entirely."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped per request)", "frontend": "95%"},
+  "seed_data_creation": "None",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Iteration 6: verified researcher image (photo-1532187863486-abf9dbad1b69) + testimonial-1/2 images load fine and defensive dapp meta tags are in place. Remaining bug is a single ORB-blocked Unsplash URL for testimonial-0. After main agent swaps the URL, re-run the same script (age gate accept -> scroll -> check testimonial-0 img.naturalWidth>0 -> assert 0 net::ERR_BLOCKED_BY_ORB in failed requests). Site confirmed to have ZERO wallet/web3/metamask/ethereum code — do NOT waste time writing wallet test steps.",
+  "rca of the issue": "Chrome's Opaque Response Blocking (ORB) enforces stricter MIME/nosniff rules on cross-origin no-cors image requests. The Unsplash CDN sometimes returns images with response headers (e.g. content-type mismatch, X-Content-Type-Options: nosniff on non-image mime, or a redirect chain) that trip ORB. The previous fix removed ?auto=format & q=70 query params which resolved 2/3 avatars, but photo-1594824388893-1c5e5c3f0ec5 is still served by Unsplash with the same problematic response, independent of query params. Mitigation: (1) replace the specific asset ID with any other Unsplash portrait that survives ORB, or (2) self-host the three testimonial avatars under /app/frontend/public/img/ to remove the third-party dependency entirely."
+}
