@@ -7,7 +7,76 @@
         <meta name="description" content="A product of emergent.sh" />
         <meta name="ethereum-dapp-url-bar-status" content="false" />
         <meta name="dapp-detection" content="disabled" />
-        <script>try{if(typeof window!=="undefined"){Object.defineProperty(window,"__biotech_no_wallet__",{value:true,writable:false});}}catch(e){}</script>
+        <script>
+        (function(){
+          try{
+            var isWalletError=function(msg){
+              if(!msg)return false;
+              var s=String(msg).toLowerCase();
+              return s.indexOf('metamask')>-1||s.indexOf('ethereum')>-1||s.indexOf('web3')>-1||s.indexOf('wallet')>-1||s.indexOf('failed to connect to metamask')>-1||s.indexOf('inpage')>-1||s.indexOf('chrome-extension')>-1;
+            };
+            // Swallow uncaught errors from wallet extensions
+            window.addEventListener('error',function(e){
+              var msg=(e&&(e.message||(e.error&&e.error.message)))||'';
+              var src=(e&&e.filename)||'';
+              if(isWalletError(msg)||isWalletError(src)){e.stopImmediatePropagation();e.preventDefault();return false;}
+            },true);
+            // Swallow unhandled promise rejections from wallet extensions
+            window.addEventListener('unhandledrejection',function(e){
+              var msg=(e&&e.reason&&(e.reason.message||e.reason))||'';
+              if(isWalletError(msg)){e.stopImmediatePropagation();e.preventDefault();return false;}
+            },true);
+            // Filter console.error so React dev overlay doesn't trigger
+            var _err=console.error;
+            console.error=function(){
+              try{var joined=Array.prototype.map.call(arguments,function(a){return typeof a==='string'?a:(a&&a.message)||'';}).join(' ');
+                if(isWalletError(joined))return;
+              }catch(_){}
+              return _err.apply(console,arguments);
+            };
+            Object.defineProperty(window,"__biotech_no_wallet__",{value:true,writable:false});
+          }catch(e){}
+        })();
+        </script>
+        <style>
+        /* Suppress react-error-overlay + webpack overlay for wallet-extension errors */
+        iframe#webpack-dev-server-client-overlay,body>iframe[style*="z-index: 2147483647"]{display:none!important;visibility:hidden!important;pointer-events:none!important}
+        </style>
+        <script>
+        (function(){
+          try{
+            var isWalletError=function(txt){
+              if(!txt)return false;
+              var s=String(txt).toLowerCase();
+              return s.indexOf('metamask')>-1||s.indexOf('ethereum')>-1||s.indexOf('web3')>-1||s.indexOf('inpage')>-1||s.indexOf('chrome-extension')>-1||s.indexOf('failed to connect to metamask')>-1;
+            };
+            // Nuke react-error-overlay / webpack overlay if it opens with a wallet error
+            var kill=function(node){
+              try{
+                if(!node||node.nodeType!==1)return;
+                // react-error-overlay renders an iframe or div with a shadow root; text content is our fastest signal
+                var txt=node.textContent||'';
+                if(node.tagName==='IFRAME'||node.id==='webpack-dev-server-client-overlay'||/react-refresh|error-overlay/i.test(node.className||'')||/Uncaught runtime errors|Compiled with problems/i.test(txt)){
+                  if(isWalletError(txt)){
+                    node.remove();
+                  }
+                }
+              }catch(_){}
+            };
+            var mo=new MutationObserver(function(muts){
+              muts.forEach(function(m){
+                m.addedNodes&&m.addedNodes.forEach(kill);
+              });
+            });
+            var boot=function(){
+              try{mo.observe(document.body,{childList:true,subtree:false});}catch(_){}
+              // Also scan any existing overlays on boot
+              try{document.querySelectorAll('body>iframe,body>div').forEach(kill);}catch(_){}
+            };
+            if(document.body)boot();else document.addEventListener('DOMContentLoaded',boot);
+          }catch(e){}
+        })();
+        </script>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600&display=swap" rel="stylesheet" />
